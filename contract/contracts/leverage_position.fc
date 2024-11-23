@@ -1,0 +1,17 @@
+#include "stdlib.fc"
+
+const MAX_LEVERAGE = 10  
+const FEE_RATE = 100  
+
+() recv_open_position(int user_id, int leverage, int usdt_margin, int token_price) -> int position_size {
+    require(leverage <= MAX_LEVERAGE, 103);  
+
+    int usdt_balance = map.get(user_id, 0);  
+    require(usdt_balance >= usdt_margin, 104);  
+
+    position_size = (usdt_margin * leverage) / token_price;  
+
+    int fee = (usdt_margin * leverage * FEE_RATE) / 10000;  
+    usdt_balance -= (usdt_margin + fee);  
+    map.set(user_id, usdt_balance);  
+}

@@ -1,0 +1,36 @@
+#include "LiquidityPool.fc"
+
+const FEE_RATE = 30 ;; 
+
+;;  
+() recv_buy_tokens(int user_id, int usdt_amount) -> int tokens {
+    ;; 
+    int current_usdt = lp_pool_data.get("usdt_balance", 0);
+    int current_token = lp_pool_data.get("token_balance", 0);
+
+    require(current_usdt > 0 && current_token > 0, 203); ;;  
+
+    ;;  
+    int usdt_with_fee = usdt_amount * (10000 - FEE_RATE) / 10000;
+    int new_usdt_balance = current_usdt + usdt_with_fee;
+    int new_token_balance = (current_usdt * current_token) / new_usdt_balance;
+    tokens = current_token - new_token_balance;
+
+    ;;  
+    lp_pool_data.set("usdt_balance", new_usdt_balance);
+    lp_pool_data.set("token_balance", new_token_balance);
+
+    ;;  
+    int fee = usdt_amount - usdt_with_fee;
+    distribute_fee_to_lp(fee);
+}
+
+;;  
+() distribute_fee_to_lp(int fee) {
+    int current_shares = lp_pool_data.get("lp_shares", 0);
+    for (int user_id : lp_user_shares.keys()) {
+        int user_shares = lp_user_shares.get(user_id, 0);
+        int user_fee = (fee * user_shares) / current_shares;
+        add_balance(user_id, user_fee);
+    }
+}

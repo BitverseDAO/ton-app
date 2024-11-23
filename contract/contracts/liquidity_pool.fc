@@ -1,0 +1,60 @@
+#include "stdlib.fc"
+
+map lp_pool_data ;;  { "usdt_balance", "token_balance", "lp_shares" }
+map lp_user_shares ;;  { "user_id": shares }
+
+
+() recv_add_liquidity(int user_id, int usdt_amount, int token_amount) -> int issued_shares {
+
+    require(usdt_amount > 0 && token_amount > 0, 201);
+
+    int current_usdt = lp_pool_data.get("usdt_balance", 0);
+    int current_token = lp_pool_data.get("token_balance", 0);
+    int current_shares = lp_pool_data.get("lp_shares", 0);
+
+    if (current_shares == 0) {
+        issued_shares = sqrt(usdt_amount * token_amount);
+    } else {
+        issued_shares = min(
+            (usdt_amount * current_shares) / current_usdt,
+            (token_amount * current_shares) / current_token
+        );
+    }
+
+    current_usdt += usdt_amount;
+    current_token += token_amount;
+    current_shares += issued_shares;
+
+    lp_pool_data.set("usdt_balance", current_usdt);
+    lp_pool_data.set("token_balance", current_token);
+    lp_pool_data.set("lp_shares", current_shares);
+
+    int user_shares = lp_user_shares.get(user_id, 0);
+    user_shares += issued_shares;
+    lp_user_shares.set(user_id, user_shares);
+
+    return issued_shares;
+}
+
+() recv_remove_liquidity(int user_id, int shares) -> (int usdt_amount, int token_amount) {
+    int user_shares = lp_user_shares.get(user_id, 0);
+    require(user_shares >= shares, 202);  
+
+    int current_usdt = lp_pool_data.get("usdt_balance", 0);
+    int current_token = lp_pool_data.get("token_balance", 0);
+    int current_shares = lp_pool_data.get("lp_shares", 0);
+
+    usdt_amount = (shares * current_usdt) / current_shares;
+    token_amount = (shares * current_token) / current_shares;
+
+    current_usdt -= usdt_amount;
+    current_token -= token_amount;
+    current_shares -= shares;
+
+    lp_pool_data.set("usdt_balance", current_usdt);
+    lp_pool_data.set("token_balance", current_token);
+    lp_pool_data.set("lp_shares", current_shares);
+
+    user_shares -= shares;
+    lp_user_shares.set(user_id, user_shares);
+}

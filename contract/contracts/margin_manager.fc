@@ -1,0 +1,12 @@
+#include "stdlib.fc"
+
+() recv_add_margin(int user_id, int additional_margin) {
+    int usdt_balance = map.get(user_id, 0); 
+    require(usdt_balance >= additional_margin, 107); 
+
+    int current_margin = map.get(user_id + 2, 0); 
+    current_margin += additional_margin;  
+    usdt_balance -= additional_margin;  
+    map.set(user_id + 2, current_margin);  
+    map.set(user_id, usdt_balance);  
+}

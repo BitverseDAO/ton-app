@@ -1,0 +1,20 @@
+#include "stdlib.fc"
+#include "PointExchange.fc"
+#include "TokenTrade.fc"
+#include "LeveragePosition.fc"
+#include "MarginManager.fc"
+
+() recv_dispatch(int action, slice payload) -> slice result {
+    switch action {
+        case 1: ;; 积分兑换为USDT
+            result = recv_exchange_points(payload);
+        case 2: ;; 购买代币
+            result = recv_buy_tokens(payload);
+        case 3: ;; 开仓
+            result = recv_open_position(payload);
+        case 4: ;; 添加保证金
+            result = recv_add_margin(payload);
+        default:
+            throw(1000); ;; 未知操作
+    }
+}
